@@ -1,0 +1,45 @@
+#login no Cosmos
+ssh jbr@cosmos.lab.fi-ware.org
+
+# mostra conteudo dos arquivos de teste
+cat structured_data.txt
+cat unstructured_data.txt
+head biketrips.csv
+head status.csv
+
+# copia arquivos locais do master node para o hdfs
+hadoop fs -mkdir /user/jbr/input
+hadoop fs -mkdir /user/jbr/inputhive
+hadoop fs -put structured_data.txt /user/jbr/inputhive
+hadoop fs -put unstructured_data.txt /user/jbr/input
+hadoop fs -put biketrips.csv /user/jbr/input
+hadoop fs -put status.csv /user/jbr/input
+hadoop fs -ls /user/jbr/input
+
+# inicia aplicativo HIVE
+# cria schema a partir de dados brutos
+> hive
+
+> create external table jbr_star_wars (name string, planet string, profession string, age int) row format delimited fields terminated by ',' location '/user/jbr/inputhive/';
+
+> select * from jbr_star_wars;
+
+# processa script java para contagem de palavras em map-reduce
+
+# arquivo 1, 55 bytes
+hadoop jar /usr/lib/hadoop-0.20/hadoop-examples.jar wordcount /user/jbr/input/unstructured_data.txt /user/jbr/output1/
+hadoop fs -getmerge /user/jbr/output1 /home/jbr/count_result1.txt; cat count_result1.txt
+
+
+# arquivo 2: 16,42 Mb
+hadoop jar /usr/lib/hadoop-0.20/hadoop-examples.jar wordcount /user/jbr/input/biketrips.csv /user/jbr/output2/
+hadoop fs -getmerge /user/jbr/output2 /home/jbr/count_result2.txt; cat count_result2.txt | more
+
+# arquivo 3: 593,5 Mb
+hadoop jar /usr/lib/hadoop-0.20/hadoop-examples.jar wordcount /user/jbr/input/status.csv /user/jbr/output3/
+hadoop fs -getmerge /user/jbr/output3 /home/jbr/count_result3.txt; cat count_result3.txt | more
+
+
+# remove arquivos
+hadoop dfs -rmr /user/jbr/input*; hadoop dfs -rmr /user/jbr/output*;
+rm count*
